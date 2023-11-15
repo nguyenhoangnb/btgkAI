@@ -18,6 +18,9 @@ Pacman agents (in searchAgents.py).
 """
 
 import util
+from util import Stack
+from util import Queue
+from util import PriorityQueue
 
 class SearchProblem:
     """
@@ -87,16 +90,74 @@ def depthFirstSearch(problem: SearchProblem):
     print("Start's successors:", problem.getSuccessors(problem.getStartState()))
     """
     "*** YOUR CODE HERE ***"
+    state = Stack()
+    visited = set()
+    state.push(problem.getStartState())
+    act = Stack()
+    act.push([])
+    while not state.isEmpty():
+        now, actions = state.pop(), act.pop()
+        if problem.isGoalState(now):
+            return actions
+        if now not in visited:
+            visited.add(now)
+            success = problem.getSuccessors(now)
+            for suc, action, _ in success:
+                if suc not in visited:
+                    new_act = actions + [action]
+                    state.push(suc)
+                    act.push(new_act)
+    return []
     util.raiseNotDefined()
 
 def breadthFirstSearch(problem: SearchProblem):
     """Search the shallowest nodes in the search tree first."""
+    
     "*** YOUR CODE HERE ***"
+    state = Queue()
+    visited = set()
+    state.push(problem.getStartState())
+    act = Queue()
+    act.push([])
+    while not state.isEmpty():
+        now = state.pop()
+        actions = act.pop()
+        if problem.isGoalState(now):
+            return actions
+        if now not in visited:
+            visited.add(now)
+            success = problem.getSuccessors(now)
+            for suc, action, _ in success:
+                if suc not in visited:
+                    new_act = actions + [action]
+                    state.push(suc)
+                    act.push(new_act)
+    return []
     util.raiseNotDefined()
 
 def uniformCostSearch(problem: SearchProblem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
+    state = PriorityQueue()
+    visited = set()
+    state.push(problem.getStartState(),0)
+    act = PriorityQueue()
+    act.push([], 0)
+    while not state.isEmpty():
+        now = state.pop()
+        actions = act.pop()
+        if problem.isGoalState(now):
+            return actions
+        if now not in visited:
+            visited.add(now)
+            success = problem.getSuccessors(now)
+            for suc, action, _ in success:
+                if suc not in visited:
+                    new_act = actions + [action]
+                    new_cost = problem.getCostOfActions(new_act)
+                    state.push(suc, new_cost)
+                    act.push(new_act, new_cost)
+    return []
     util.raiseNotDefined()
 
 def nullHeuristic(state, problem=None):
@@ -109,6 +170,28 @@ def nullHeuristic(state, problem=None):
 def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
+    state = PriorityQueue()
+    visited = set()
+    state.push(problem.getStartState(),0)
+    act = PriorityQueue()
+    act.push([], 0)
+    while not state.isEmpty():
+        now = state.pop()
+        actions = act.pop()
+        if problem.isGoalState(now):
+            return actions
+        if now not in visited:
+            visited.add(now)
+            success = problem.getSuccessors(now)
+            for suc, action, _ in success:
+                if suc not in visited:
+                    new_act = actions + [action]
+                    g_cost = problem.getCostOfActions(new_act)
+                    h_cost = heuristic(suc, problem)
+                    f_cost = h_cost+g_cost
+                    state.push(suc, f_cost)
+                    act.push(new_act, f_cost)
+    return []
     util.raiseNotDefined()
 
 
