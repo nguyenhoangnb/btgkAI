@@ -42,7 +42,7 @@ import util
 import time
 import search
 import pacman
-
+from util import Queue, PriorityQueue
 class GoWestAgent(Agent):
     "An agent that goes West until it can't."
 
@@ -296,6 +296,16 @@ class CornersProblem(search.SearchProblem):
         space)
         """
         "*** YOUR CODE HERE ***"
+        state = {'position':self.startingPosition, 'isVisited':{}}
+        result = []
+        for corner in self.corners:
+            if state['position'] == corner:
+                state['isVisited'][corner] = True
+                result.append(state['isVisited'][corner])
+            else:
+                state['isVisited'][corner] = False
+                result.append(state['isVisited'][corner])
+        return state['position'], tuple(result)      
         util.raiseNotDefined()
 
     def isGoalState(self, state: Any):
@@ -303,6 +313,8 @@ class CornersProblem(search.SearchProblem):
         Returns whether this search state is a goal state of the problem.
         """
         "*** YOUR CODE HERE ***"
+        check = all(state[1][:])
+        return check
         util.raiseNotDefined()
 
     def getSuccessors(self, state: Any):
@@ -326,7 +338,29 @@ class CornersProblem(search.SearchProblem):
             #   hitsWall = self.walls[nextx][nexty]
 
             "*** YOUR CODE HERE ***"
-
+            x,y = state[0]
+            dx, dy = Actions.directionToVector(action)
+            next_position = nextx, nexty = int(x + dx), int(y + dy)
+            hitsWall = self.walls[nextx][nexty]
+            if hitsWall:
+                successor =  None
+            else:
+                isCorner = {}
+                for corner in range(4):
+                    isCorner[self.corners[corner]] = state[1][corner]
+                    
+                next_state = {
+                    'position': next_position,
+                    'isCorner':isCorner
+                }
+                if next_position in self.corners:
+                    next_state['isCorner'][next_position] = True
+                result = []
+                for corner in self.corners:
+                    result.append(next_state['isCorner'][corner])
+                successor = next_state['position'], tuple(result)
+            if successor is not None:
+                successors.append((successor, action, 1))
         self._expanded += 1 # DO NOT CHANGE
         return successors
 
@@ -343,7 +377,16 @@ class CornersProblem(search.SearchProblem):
             if self.walls[x][y]: return 999999
         return len(actions)
 
-
+    def dictState(self, state):
+        """
+        Input: A state represented with a tuple
+        Output: The same state represented with a dictionary
+        """
+        isCornerVisited = {}
+        # By doing that we ensure that the order of corners remains the same
+        for i in range(4):
+            isCornerVisited[self.corners[i]] = state[1][i]
+        return {'position': state[0], 'isCornerVisited': isCornerVisited}
 def cornersHeuristic(state: Any, problem: CornersProblem):
     """
     A heuristic for the CornersProblem that you defined.
@@ -361,7 +404,14 @@ def cornersHeuristic(state: Any, problem: CornersProblem):
     walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
     "*** YOUR CODE HERE ***"
-    return 0 # Default to trivial solution
+    position = state[0]
+    distances = []
+    i = 0
+    for i in range(4):
+        if not state[1][i]:
+            h = abs(position[0] - corners[i][0]) + abs(position[1] - corners[i][1])
+            distances.append(h)
+    return 0 if not distances else max(distances)
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
@@ -455,7 +505,31 @@ def foodHeuristic(state: Tuple[Tuple, List[List]], problem: FoodSearchProblem):
     """
     position, foodGrid = state
     "*** YOUR CODE HERE ***"
-    return 0
+    foodList = foodGrid.asList()
+    wall = problem.walls
+    if len(foodList) == 0:
+        return 0
+    distance = {position: 0}
+    visited = {position}
+    state =PriorityQueue()
+    state.push(position, 0)
+    while not state.isEmpty():
+        pos = x, y = state.pop()
+        if pos in foodList:
+            if len(foodList) == 1:
+                return distance[pos]
+            foodList.remove(pos)
+        for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
+            dx, dy = Actions.directionToVector(action)
+            next_pos = nextx, nexty = int(dx + x), int(dy+y)
+            if not wall[nextx][nexty] and next_pos not in visited:
+                state.push(next_pos, distance[pos]+1)
+                visited.add(next_pos)
+                distance[next_pos] = distance[pos]+1
+    
+
+
+
 
 class ClosestDotSearchAgent(SearchAgent):
     "Search for all food using a sequence of searches"
@@ -486,6 +560,8 @@ class ClosestDotSearchAgent(SearchAgent):
         problem = AnyFoodSearchProblem(gameState)
 
         "*** YOUR CODE HERE ***"
+        return search.aStarSearch(problem)
+
         util.raiseNotDefined()
 
 class AnyFoodSearchProblem(PositionSearchProblem):
@@ -522,6 +598,7 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         x,y = state
 
         "*** YOUR CODE HERE ***"
+        return self.food[x][y]
         util.raiseNotDefined()
 
 def mazeDistance(point1: Tuple[int, int], point2: Tuple[int, int], gameState: pacman.GameState) -> int:
